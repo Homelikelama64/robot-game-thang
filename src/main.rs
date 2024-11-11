@@ -161,7 +161,7 @@ impl Brain {
         total_instructions.retain(|instruction| instruction.0 != 0);
         total_instructions
     }
-    fn get_instruction_count(&self, instruction:InstructionType) -> usize {
+    fn get_instruction_count(&self, instruction: InstructionType) -> usize {
         let avalible_instructions = self.get_avalible_instructions();
         let mut count = 0;
         for avalible_instruction in avalible_instructions {
@@ -181,6 +181,8 @@ struct Assets {
     down_instruction: Texture2D,
     direction_instruction: Texture2D,
     move_instruction: Texture2D,
+    right_instruction: Texture2D,
+    left_instruction: Texture2D,
 }
 struct BrainEdit {
     pos: Vector2,
@@ -203,9 +205,14 @@ fn main() {
         vec![Robot::new(
             (0, 0),
             Rotation::Up,
-            5,
-            5,
-            vec![(5, InstructionType::Direction), (5, InstructionType::Move)],
+            10,
+            10,
+            vec![
+                (5, InstructionType::Direction),
+                (5, InstructionType::Move),
+                (5, InstructionType::RotateLeft),
+                (5, InstructionType::RotateRight),
+            ],
         )],
     );
 
@@ -239,6 +246,12 @@ fn main() {
             .unwrap(),
         move_instruction: rl
             .load_texture(&thread, "Assets/move_instruction.png")
+            .unwrap(),
+        right_instruction: rl
+            .load_texture(&thread, "Assets/right_instruction.png")
+            .unwrap(),
+        left_instruction: rl
+            .load_texture(&thread, "Assets/left_instruction.png")
             .unwrap(),
     };
     let update_dt = 0.5;

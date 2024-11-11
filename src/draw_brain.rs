@@ -85,7 +85,7 @@ pub fn draw_brain(
         let bottom_left_pos = bottom_left_pos
             + Vector2 {
                 x: 0.0,
-                y: 16.0 + options_height as f32 * height,
+                y: 16.0 + height,
             };
         let top_left_pos = Vector2::new(bottom_left_pos.x, bottom_left_pos.y - height);
 
@@ -147,18 +147,24 @@ fn draw_instruction(
     pos: Vector2,
     up: bool,
 ) {
-    let texture = match instruction.instruction_type {
-        crate::InstructionType::Move => &assets.move_instruction,
-        crate::InstructionType::Direction => &assets.direction_instruction,
-        crate::InstructionType::RotateLeft => todo!(),
-        crate::InstructionType::RotateRight => todo!(),
-        crate::InstructionType::None => &assets.blank_instruction,
-    };
-    let rotation = match instruction.rotation {
+    let mut rotation = match instruction.rotation {
         crate::Rotation::Up => 0.0,
         crate::Rotation::Right => 90.0,
         crate::Rotation::Down => 180.0,
         crate::Rotation::Left => 270.0,
+    };
+    let texture = match instruction.instruction_type {
+        crate::InstructionType::Move => &assets.move_instruction,
+        crate::InstructionType::Direction => &assets.direction_instruction,
+        crate::InstructionType::RotateLeft => {
+            rotation = 0.0;
+            &assets.left_instruction
+        }
+        crate::InstructionType::RotateRight => {
+            rotation = 0.0;
+            &assets.right_instruction
+        }
+        crate::InstructionType::None => &assets.blank_instruction,
     };
     let offset = Vector2::new(instruction_size / 2.0, instruction_size / 2.0);
     let boarder_texture = match up {

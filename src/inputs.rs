@@ -24,7 +24,7 @@ pub fn inputs(
             Rotation::Down => Rotation::Left,
             Rotation::Left => Rotation::Up,
         }
-    }else if rl.get_mouse_wheel_move() < 0.0 {
+    } else if rl.get_mouse_wheel_move() < 0.0 {
         brain_edit.selected_instruction.rotation = match brain_edit.selected_instruction.rotation {
             Rotation::Up => Rotation::Left,
             Rotation::Right => Rotation::Up,
@@ -55,7 +55,10 @@ fn brain(
     );
     let instruction_count =
         brain.get_instruction_count(brain_edit.selected_instruction.instruction_type);
-    if instruction_count != 0 && brain.in_bounds((mouse_brain_pos.x as i32, mouse_brain_pos.y as i32)) && rl.is_mouse_button_down(MouseButton::MOUSE_BUTTON_LEFT) {
+    if instruction_count != 0
+        && brain.in_bounds((mouse_brain_pos.x as i32, mouse_brain_pos.y as i32))
+        && rl.is_mouse_button_down(MouseButton::MOUSE_BUTTON_LEFT)
+    {
         brain.instructions
             [mouse_brain_pos.x as usize + mouse_brain_pos.y as usize * brain.width as usize] =
             brain_edit.selected_instruction;
@@ -78,8 +81,8 @@ fn brain(
         && mouse_selection_pos.y >= 0.0
         && mouse_selection_pos.y < options_height as f32
     {
-        let index =
-            (mouse_selection_pos.x + mouse_selection_pos.y / options_width as f32).floor() as usize;
+        let index = mouse_selection_pos.x as usize
+            + mouse_selection_pos.y as usize * options_width as usize;
         if rl.is_mouse_button_pressed(MouseButton::MOUSE_BUTTON_LEFT)
             && index < avalible_instructions.len()
         {
