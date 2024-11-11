@@ -4,6 +4,12 @@
 use draw_brain::*;
 use inputs::*;
 use raylib::prelude::*;
+use rodio::{
+    source::{SamplesConverter, Source},
+    Decoder, OutputStream,
+};
+use std::fs::File;
+use std::io::BufReader;
 
 mod draw_brain;
 mod inputs;
@@ -199,6 +205,7 @@ fn main() {
         .title("Hello, World")
         .build();
 
+    let (stream, sound_handle) = OutputStream::try_default().unwrap();
     let mut map = Map::new(
         10,
         10,
@@ -431,6 +438,7 @@ fn main() {
             &assets,
             mouse_pos,
             &mut brain_edit,
+            &sound_handle,
             stepping,
         );
 

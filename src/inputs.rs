@@ -1,4 +1,7 @@
+use std::{fs::File, io::BufReader};
+
 use raylib::prelude::*;
+use rodio::{Decoder, OutputStreamHandle, Source};
 
 use crate::{Assets, BrainEdit, InstructionType, Map, Rotation};
 
@@ -8,6 +11,7 @@ pub fn inputs(
     assets: &Assets,
     mouse_pos: Vector2,
     brain_edit: &mut BrainEdit,
+    sound_handle: &OutputStreamHandle,
     stepping: bool,
 ) -> bool {
     let mut stepping = stepping;
@@ -15,7 +19,7 @@ pub fn inputs(
         stepping = !stepping;
     }
     if brain_edit.id.is_some() {
-        brain(rl, map, assets, mouse_pos, brain_edit);
+        brain(rl, map, assets, mouse_pos, sound_handle, brain_edit);
     }
     if rl.get_mouse_wheel_move() > 0.0 {
         brain_edit.selected_instruction.rotation = match brain_edit.selected_instruction.rotation {
@@ -41,6 +45,7 @@ fn brain(
     map: &mut Map,
     assets: &Assets,
     mouse_pos: Vector2,
+    sound_handle: &OutputStreamHandle,
     brain_edit: &mut BrainEdit,
 ) {
     let brain = &mut map.robots[brain_edit.id.unwrap()].brain;
@@ -55,13 +60,34 @@ fn brain(
     );
     let instruction_count =
         brain.get_instruction_count(brain_edit.selected_instruction.instruction_type);
-    if instruction_count != 0
-        && brain.in_bounds((mouse_brain_pos.x as i32, mouse_brain_pos.y as i32))
-        && rl.is_mouse_button_down(MouseButton::MOUSE_BUTTON_LEFT)
-    {
-        brain.instructions
-            [mouse_brain_pos.x as usize + mouse_brain_pos.y as usize * brain.width as usize] =
-            brain_edit.selected_instruction;
+    if brain.in_bounds((mouse_brain_pos.x as i32, mouse_brain_pos.y as i32)) {
+        let old_instruction = brain.instructions
+            [mouse_brain_pos.x as usize + mouse_brain_pos.y as usize * brain.width as usize];
+        if instruction_count != 0 && rl.is_mouse_button_down(MouseButton::MOUSE_BUTTON_LEFT) {
+            let index =
+                mouse_brain_pos.x as usize + mouse_brain_pos.y as usize * brain.width as usize;
+            brain.instructions[index] = brain_edit.selected_instruction;
+            if old_instruction != brain.instructions[index] {
+                if brain_edit.selected_instruction.instruction_type != InstructionType::None {
+                    let _ = sound_handle.play_raw(
+                        Decoder::new(BufReader::new(
+                            File::open("Assets/button_down.wav").unwrap(),
+                        ))
+                        .unwrap()
+                        .convert_samples(),
+                    );
+                }else if old_instruction.instruction_type != InstructionType::None {
+                    let _ = sound_handle.play_raw(
+                        Decoder::new(BufReader::new(
+                            File::open("Assets/button_up.wav").unwrap(),
+                        ))
+                        .unwrap()
+                        .convert_samples(),
+                    );
+
+                }
+            }
+        }
     }
 
     let avalible_instructions = brain.get_avalible_instructions();
