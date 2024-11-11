@@ -46,7 +46,7 @@ struct Reader {
 struct Instruction {
     instruction_type: InstructionType,
     rotation: Rotation,
-    edit: bool
+    edit: bool,
 }
 
 #[derive(Clone, Copy, Debug)]
@@ -112,7 +112,7 @@ impl Brain {
             instructions.push(Instruction {
                 instruction_type: InstructionType::None,
                 rotation: Rotation::Up,
-                edit: true
+                edit: true,
             });
         }
         Brain {
@@ -131,7 +131,7 @@ impl Brain {
             return &Instruction {
                 instruction_type: InstructionType::None,
                 rotation: Rotation::Up,
-                edit: false
+                edit: false,
             };
         }
         let index = (pos.0 + pos.1 * self.width as i32) as usize;
@@ -147,17 +147,22 @@ impl Brain {
         let mut total_instructions = self.total_instructions.clone();
         for avalible_instruction in &mut total_instructions {
             for instruction in &self.instructions {
-                let other_instruction_type = instruction.instruction_type;
-                if matches!(avalible_instruction.0, other_instruction_type) {
-                    if avalible_instruction.0 == 0 {
-
+                let _other_instruction_type = instruction.instruction_type;
+                if matches!(avalible_instruction.0, _other_instruction_type) {
+                    if !avalible_instruction.0 == 0 {
+                        avalible_instruction.0 -= 1;
                     }
-                    avalible_instruction.0 -= 1;
                 }
             }
         }
+        total_instructions.retain(|instruction| instruction.0 != 0);
         total_instructions
     }
+}
+
+struct Asset {
+    up: Texture2D,
+    down: Texture2D,
 }
 
 fn main() {
@@ -175,15 +180,15 @@ fn main() {
             (0, 0),
             Rotation::Up,
             10,
-            10,
-            vec![(5, InstructionType::Direction)],
+            5,
+            vec![(5, InstructionType::Direction), (5, InstructionType::Move)],
         )],
     );
 
     let mut selected_instruction = Instruction {
         instruction_type: InstructionType::Direction,
         rotation: Rotation::Right,
-        edit: true
+        edit: true,
     };
     let selected_robot: Option<usize> = None;
 
@@ -192,15 +197,40 @@ fn main() {
         .unwrap();
     let brain_corner = rl.load_texture(&thread, "Assets/brain_corner.png").unwrap();
 
-    let blank_instruction_asset = rl
-        .load_texture(&thread, "Assets/blank_instruction.png")
-        .unwrap();
-    let direction_instruction_asset = rl
-        .load_texture(&thread, "Assets/direction_instruction.png")
-        .unwrap();
-    let move_instruction_asset = rl
-        .load_texture(&thread, "Assets/move_instruction.png")
-        .unwrap();
+    //let blank_instruction_asset = rl
+    //    .load_texture(&thread, "Assets/blank_instruction.png")
+    //    .unwrap();
+    //let direction_instruction_asset = rl
+    //    .load_texture(&thread, "Assets/direction_instruction.png")
+    //    .unwrap();
+    //let move_instruction_asset = rl
+    //    .load_texture(&thread, "Assets/move_instruction.png")
+    //    .unwrap();
+
+    let blank_instruction_asset = Asset {
+        up: rl
+            .load_texture(&thread, "Assets/blank_instruction.png")
+            .unwrap(),
+        down: rl
+            .load_texture(&thread, "Assets/blank_down_instruction.png")
+            .unwrap(),
+    };
+    let direction_instruction_asset = Asset {
+        up: rl
+            .load_texture(&thread, "Assets/direction_up_instruction.png")
+            .unwrap(),
+        down: rl
+            .load_texture(&thread, "Assets/direction_down_instruction.png")
+            .unwrap(),
+    };
+    let move_instruction_asset = Asset {
+        up: rl
+        .load_texture(&thread, "Assets/move_up_instruction.png")
+        .unwrap(),
+        down: rl
+        .load_texture(&thread, "Assets/move_down_instruction.png")
+        .unwrap(),
+    };
 
     let update_dt = 0.5;
     let mut time_since_last_step = 0.0;
@@ -382,13 +412,15 @@ fn main() {
         draw_brain(
             &mut d,
             &map.robots[0].brain,
-            Vector2 { x: 50.0, y: 1000.0 },
-            800.0,
+            Vector2 { x: 50.0, y: 400.0 },
+            400.0,
             &brain_boarder,
             &brain_corner,
             &blank_instruction_asset,
             &move_instruction_asset,
             &direction_instruction_asset,
+            mouse_pos,
+            &selected_instruction,
             1.0,
         );
     }
