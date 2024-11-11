@@ -42,14 +42,14 @@ struct Reader {
     pos: (i32, i32),
     rotation: Rotation,
 }
-#[derive(Clone, Copy, Debug)]
+#[derive(Clone, Copy, Debug, PartialEq)]
 struct Instruction {
     instruction_type: InstructionType,
     rotation: Rotation,
     edit: bool,
 }
 
-#[derive(Clone, Copy, Debug)]
+#[derive(Clone, Copy, Debug, PartialEq)]
 enum InstructionType {
     Move,
     Direction,
@@ -58,7 +58,7 @@ enum InstructionType {
     None,
 }
 
-#[derive(Clone, Copy, Debug)]
+#[derive(Clone, Copy, Debug, PartialEq)]
 enum Rotation {
     Up,
     Right,
@@ -145,11 +145,14 @@ impl Brain {
     }
     fn get_avalible_instructions(&self) -> Vec<(usize, InstructionType)> {
         let mut total_instructions = self.total_instructions.clone();
+        total_instructions.insert(0, (1, InstructionType::None));
         for avalible_instruction in &mut total_instructions {
-            for instruction in &self.instructions {
-                let _other_instruction_type = instruction.instruction_type;
-                if matches!(avalible_instruction.0, _other_instruction_type) {
-                    if !avalible_instruction.0 == 0 {
+            if avalible_instruction.1 != InstructionType::None {
+                for instruction in &self.instructions {
+                    let other_instruction_type = instruction.instruction_type;
+                    if avalible_instruction.1 == other_instruction_type
+                        && avalible_instruction.0 != 0
+                    {
                         avalible_instruction.0 -= 1;
                     }
                 }
@@ -158,11 +161,32 @@ impl Brain {
         total_instructions.retain(|instruction| instruction.0 != 0);
         total_instructions
     }
+    fn get_instruction_count(&self, instruction:InstructionType) -> usize {
+        let avalible_instructions = self.get_avalible_instructions();
+        let mut count = 0;
+        for avalible_instruction in avalible_instructions {
+            if avalible_instruction.1 == instruction {
+                count = avalible_instruction.0;
+            }
+        }
+        count
+    }
 }
 
-struct Asset {
-    up: Texture2D,
-    down: Texture2D,
+struct Assets {
+    brain_edge: Texture2D,
+    brain_corner: Texture2D,
+    blank_instruction: Texture2D,
+    up_instruction: Texture2D,
+    down_instruction: Texture2D,
+    direction_instruction: Texture2D,
+    move_instruction: Texture2D,
+}
+struct BrainEdit {
+    pos: Vector2,
+    id: Option<usize>,
+    size: f32,
+    selected_instruction: Instruction,
 }
 
 fn main() {
@@ -179,59 +203,44 @@ fn main() {
         vec![Robot::new(
             (0, 0),
             Rotation::Up,
-            10,
+            5,
             5,
             vec![(5, InstructionType::Direction), (5, InstructionType::Move)],
         )],
     );
 
-    let mut selected_instruction = Instruction {
-        instruction_type: InstructionType::Direction,
-        rotation: Rotation::Right,
-        edit: true,
+    let mut brain_edit = BrainEdit {
+        pos: Vector2 { x: 100.0, y: 650.0 },
+        id: Some(0),
+        size: 600.0,
+        selected_instruction: Instruction {
+            instruction_type: InstructionType::None,
+            rotation: Rotation::Right,
+            edit: true,
+        },
     };
-    let selected_robot: Option<usize> = None;
 
-    let brain_boarder = rl
-        .load_texture(&thread, "Assets/brain_boarder.png")
-        .unwrap();
-    let brain_corner = rl.load_texture(&thread, "Assets/brain_corner.png").unwrap();
-
-    //let blank_instruction_asset = rl
-    //    .load_texture(&thread, "Assets/blank_instruction.png")
-    //    .unwrap();
-    //let direction_instruction_asset = rl
-    //    .load_texture(&thread, "Assets/direction_instruction.png")
-    //    .unwrap();
-    //let move_instruction_asset = rl
-    //    .load_texture(&thread, "Assets/move_instruction.png")
-    //    .unwrap();
-
-    let blank_instruction_asset = Asset {
-        up: rl
+    let assets = Assets {
+        brain_edge: rl
+            .load_texture(&thread, "Assets/brain_boarder.png")
+            .unwrap(),
+        brain_corner: rl.load_texture(&thread, "Assets/brain_corner.png").unwrap(),
+        blank_instruction: rl
             .load_texture(&thread, "Assets/blank_instruction.png")
             .unwrap(),
-        down: rl
-            .load_texture(&thread, "Assets/blank_down_instruction.png")
+        up_instruction: rl
+            .load_texture(&thread, "Assets/up_instruction.png")
+            .unwrap(),
+        down_instruction: rl
+            .load_texture(&thread, "Assets/down_instruction.png")
+            .unwrap(),
+        direction_instruction: rl
+            .load_texture(&thread, "Assets/direction_instruction.png")
+            .unwrap(),
+        move_instruction: rl
+            .load_texture(&thread, "Assets/move_instruction.png")
             .unwrap(),
     };
-    let direction_instruction_asset = Asset {
-        up: rl
-            .load_texture(&thread, "Assets/direction_up_instruction.png")
-            .unwrap(),
-        down: rl
-            .load_texture(&thread, "Assets/direction_down_instruction.png")
-            .unwrap(),
-    };
-    let move_instruction_asset = Asset {
-        up: rl
-        .load_texture(&thread, "Assets/move_up_instruction.png")
-        .unwrap(),
-        down: rl
-        .load_texture(&thread, "Assets/move_down_instruction.png")
-        .unwrap(),
-    };
-
     let update_dt = 0.5;
     let mut time_since_last_step = 0.0;
 
@@ -403,25 +412,30 @@ fn main() {
             }
             time_since_last_step -= update_dt;
         }
-        stepping = inputs(&mut rl, &mut map, stepping);
+        stepping = inputs(
+            &mut rl,
+            &mut map,
+            &assets,
+            mouse_pos,
+            &mut brain_edit,
+            stepping,
+        );
 
         let mut d = rl.begin_drawing(&thread);
 
         d.clear_background(Color::new(51, 51, 51, 255));
 
-        draw_brain(
-            &mut d,
-            &map.robots[0].brain,
-            Vector2 { x: 50.0, y: 400.0 },
-            400.0,
-            &brain_boarder,
-            &brain_corner,
-            &blank_instruction_asset,
-            &move_instruction_asset,
-            &direction_instruction_asset,
-            mouse_pos,
-            &selected_instruction,
-            1.0,
-        );
+        if brain_edit.id.is_some() {
+            draw_brain(
+                &mut d,
+                &map.robots[brain_edit.id.unwrap()].brain,
+                brain_edit.pos,
+                brain_edit.size,
+                &assets,
+                mouse_pos,
+                &brain_edit.selected_instruction,
+                1.0,
+            );
+        }
     }
 }
