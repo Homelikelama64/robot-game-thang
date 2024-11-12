@@ -3,6 +3,7 @@
 
 use draw_brain::*;
 use inputs::*;
+use instructions::*;
 use raylib::prelude::*;
 use rodio::{
     source::{SamplesConverter, Source},
@@ -13,6 +14,7 @@ use std::io::BufReader;
 
 mod draw_brain;
 mod inputs;
+mod instructions;
 
 #[derive(Clone, Debug)]
 struct Map {
@@ -58,10 +60,12 @@ struct Instruction {
 #[derive(Clone, Copy, Debug, PartialEq)]
 enum InstructionType {
     Move,
+    Back,
     Direction,
     RotateLeft,
     RotateRight,
     None,
+    Blank,
 }
 
 #[derive(Clone, Copy, Debug, PartialEq)]
@@ -188,14 +192,16 @@ struct Assets {
     down_instruction: Texture2D,
     direction_instruction: Texture2D,
     move_instruction: Texture2D,
+    back_instruction: Texture2D,
     right_instruction: Texture2D,
     left_instruction: Texture2D,
+    reader: Texture2D,
 }
 struct BrainEdit {
     pos: Vector2,
     id: Option<usize>,
     size: f32,
-    scale:f32,
+    scale: f32,
     selected_instruction: Instruction,
 }
 
@@ -217,22 +223,23 @@ fn main() {
             5,
             5,
             vec![
-                (25, InstructionType::Direction),
-                (25, InstructionType::Move),
-                (25, InstructionType::RotateLeft),
-                (25, InstructionType::RotateRight),
+                (5, InstructionType::Direction),
+                (5, InstructionType::Move),
+                (5, InstructionType::Back),
+                (5, InstructionType::RotateLeft),
+                (5, InstructionType::RotateRight),
             ],
         )],
     );
 
     let mut brain_edit = BrainEdit {
-        pos: Vector2 { x: 100.0, y: 300.0 },
+        pos: Vector2 { x: 100.0, y: 450.0 },
         id: Some(0),
-        size: 100.0,
+        size: 200.0,
         scale: 2.0,
         selected_instruction: Instruction {
             instruction_type: InstructionType::None,
-            rotation: Rotation::Right,
+            rotation: Rotation::Up,
             edit: true,
         },
     };
@@ -257,12 +264,16 @@ fn main() {
         move_instruction: rl
             .load_texture(&thread, "Assets/move_instruction.png")
             .unwrap(),
+        back_instruction: rl
+            .load_texture(&thread, "Assets/back_instruction.png")
+            .unwrap(),
         right_instruction: rl
             .load_texture(&thread, "Assets/right_instruction.png")
             .unwrap(),
         left_instruction: rl
             .load_texture(&thread, "Assets/left_instruction.png")
             .unwrap(),
+        reader: rl.load_texture(&thread, "Assets/reader.png").unwrap(),
     };
     let update_dt = 0.5;
     let mut time_since_last_step = 0.0;
@@ -278,163 +289,13 @@ fn main() {
 
         let mouse_pos = rl.get_mouse_position();
 
-        let buffer = if height < width {
-            height as f32
-        } else {
-            width as f32
-        } / 50.0;
-        let mut max_brain_area_width = width as f32 / 3.0;
-
-        let mut brains_height = buffer;
-        for robot in &map.robots {
-            let brain = &robot.brain;
-            let scale = (max_brain_area_width - (buffer * 2.0)) / brain.width as f32;
-
-            brains_height += brain.height as f32 * scale + buffer;
-        }
-
-        if brains_height > height as f32 {
-            max_brain_area_width /= (brains_height) / (height as f32);
-        }
-
         if stepping {
             time_since_last_step += dt;
         }
-        while time_since_last_step > update_dt {
-            for robot in &mut map.robots {
-                let brain = &mut robot.brain;
-                let instruction = brain.get_instruction(brain.reader.pos);
-                if read_next {
-                    match instruction.instruction_type {
-                        InstructionType::Move => match robot.rotation {
-                            Rotation::Up => match get_cell_type(
-                                robot.pos.0,
-                                robot.pos.1 + 1,
-                                map.width,
-                                map.height,
-                                &map.cells,
-                            ) {
-                                Cell::Empty => robot.pos.1 += 1,
-                                Cell::Wall => {}
-                            },
-                            Rotation::Right => match get_cell_type(
-                                robot.pos.0 + 1,
-                                robot.pos.1,
-                                map.width,
-                                map.height,
-                                &map.cells,
-                            ) {
-                                Cell::Empty => robot.pos.0 += 1,
-                                Cell::Wall => {}
-                            },
-                            Rotation::Down => match get_cell_type(
-                                robot.pos.0,
-                                robot.pos.1 - 1,
-                                map.width,
-                                map.height,
-                                &map.cells,
-                            ) {
-                                Cell::Empty => robot.pos.1 -= 1,
-                                Cell::Wall => {}
-                            },
-                            Rotation::Left => match get_cell_type(
-                                robot.pos.0 - 1,
-                                robot.pos.1,
-                                map.width,
-                                map.height,
-                                &map.cells,
-                            ) {
-                                Cell::Empty => robot.pos.0 -= 1,
-                                Cell::Wall => {}
-                            },
-                        },
-                        InstructionType::Direction => {
-                            brain.reader.rotation = instruction.rotation;
-                        }
-                        InstructionType::None => {}
-                        InstructionType::RotateLeft => {
-                            robot.rotation = match robot.rotation {
-                                Rotation::Up => Rotation::Left,
-                                Rotation::Right => Rotation::Up,
-                                Rotation::Down => Rotation::Right,
-                                Rotation::Left => Rotation::Down,
-                            }
-                        }
-                        InstructionType::RotateRight => {
-                            robot.rotation = match robot.rotation {
-                                Rotation::Up => Rotation::Right,
-                                Rotation::Right => Rotation::Down,
-                                Rotation::Down => Rotation::Left,
-                                Rotation::Left => Rotation::Up,
-                            }
-                        }
-                    }
-                }
-                match brain.reader.rotation {
-                    Rotation::Up => {
-                        if brain.in_bounds((brain.reader.pos.0, brain.reader.pos.1 + 1))
-                            && !matches!(
-                                brain
-                                    .get_instruction((brain.reader.pos.0, brain.reader.pos.1 + 1))
-                                    .instruction_type,
-                                InstructionType::None
-                            )
-                        {
-                            brain.reader.pos.1 += 1;
-                            read_next = true;
-                        } else {
-                            read_next = false;
-                        }
-                    }
-                    Rotation::Right => {
-                        if brain.in_bounds((brain.reader.pos.0 + 1, brain.reader.pos.1))
-                            && !matches!(
-                                brain
-                                    .get_instruction((brain.reader.pos.0 + 1, brain.reader.pos.1))
-                                    .instruction_type,
-                                InstructionType::None
-                            )
-                        {
-                            brain.reader.pos.0 += 1;
-                            read_next = true;
-                        } else {
-                            read_next = false;
-                        }
-                    }
-                    Rotation::Down => {
-                        if brain.in_bounds((brain.reader.pos.0, brain.reader.pos.1 - 1))
-                            && !matches!(
-                                brain
-                                    .get_instruction((brain.reader.pos.0, brain.reader.pos.1 - 1))
-                                    .instruction_type,
-                                InstructionType::None
-                            )
-                        {
-                            brain.reader.pos.1 -= 1;
-                            read_next = true;
-                        } else {
-                            read_next = false;
-                        }
-                    }
-                    Rotation::Left => {
-                        if brain.in_bounds((brain.reader.pos.0 - 1, brain.reader.pos.1))
-                            && !matches!(
-                                brain
-                                    .get_instruction((brain.reader.pos.0 - 1, brain.reader.pos.1))
-                                    .instruction_type,
-                                InstructionType::None
-                            )
-                        {
-                            brain.reader.pos.0 -= 1;
-                            read_next = true;
-                        } else {
-                            read_next = false;
-                        }
-                    }
-                }
-            }
-            time_since_last_step -= update_dt;
-        }
+
+        (read_next, time_since_last_step) =
+            update_robots(&mut map, read_next, time_since_last_step, update_dt);
+
         stepping = inputs(
             &mut rl,
             &mut map,
