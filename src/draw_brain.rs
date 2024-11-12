@@ -17,7 +17,7 @@ pub fn draw_brain(
     let instruction_size = width / brain.width as f32;
     let height = brain.height as f32 * instruction_size + assets.brain_corner.height as f32 * 2.0;
 
-    draw_ui_boarders(d, size, assets, bottom_left_pos, height);
+    draw_ui_boarders(d, size, scale, assets, bottom_left_pos, height);
     let top_left_pos = Vector2::new(bottom_left_pos.x, bottom_left_pos.y - height)
         + Vector2::new(
             assets.brain_corner.width as f32,
@@ -89,7 +89,7 @@ pub fn draw_brain(
             };
         let top_left_pos = Vector2::new(bottom_left_pos.x, bottom_left_pos.y - height);
 
-        draw_ui_boarders(d, size, assets, bottom_left_pos, height);
+        draw_ui_boarders(d, size, scale, assets, bottom_left_pos, height);
 
         for i in 0..options_width * options_height {
             let pos = Vector2::new(
@@ -129,7 +129,7 @@ pub fn draw_brain(
             if i < avalible_instructions.len() as i32 && avalible_instructions[i as usize].0 != 1 {
                 d.draw_text(
                     avalible_instructions[i as usize].0.to_string().as_str(),
-                    (pos.x + instruction_size - instruction_size / 3.0) as i32,
+                    (pos.x + instruction_size - instruction_size / 2.5) as i32,
                     (pos.y + instruction_size - instruction_size / 3.0) as i32,
                     (instruction_size / 3.0) as i32,
                     Color::WHITE,
@@ -212,10 +212,11 @@ fn draw_instruction(
 fn draw_ui_boarders(
     d: &mut RaylibDrawHandle,
     size: f32,
+    scale: f32,
     assets: &Assets,
     bottom_left_pos: Vector2,
     height: f32,
-) {
+) -> (f32, f32) {
     let top_left_pos = Vector2::new(bottom_left_pos.x, bottom_left_pos.y - height);
     {
         let width = size - assets.brain_corner.width as f32 * 2.0;
@@ -233,7 +234,7 @@ fn draw_ui_boarders(
                 x: bottom_left_pos.x + assets.brain_corner.width as f32 + width / 2.0,
                 y: bottom_left_pos.y - boarder_height / 2.0,
                 width,
-                height: boarder_height,
+                height: boarder_height * scale,
             },
             Vector2::new(width / 2.0, boarder_height / 2.0),
             0.0,
@@ -254,7 +255,7 @@ fn draw_ui_boarders(
                     - (height - assets.brain_corner.height as f32 * 2.0) / 2.0
                     - assets.brain_corner.height as f32,
                 width: height - assets.brain_corner.height as f32 * 2.0,
-                height: boarder_height,
+                height: boarder_height * scale,
             },
             Vector2::new(
                 (height - assets.brain_corner.height as f32 * 2.0) / 2.0,
@@ -276,7 +277,7 @@ fn draw_ui_boarders(
                 x: top_left_pos.x + assets.brain_corner.width as f32 + width / 2.0,
                 y: top_left_pos.y + boarder_height / 2.0,
                 width,
-                height: boarder_height,
+                height: boarder_height * scale,
             },
             Vector2::new(width / 2.0, boarder_height / 2.0),
             180.0,
@@ -295,7 +296,7 @@ fn draw_ui_boarders(
                 x: (bottom_left_pos.x - boarder_height / 2.0 + size),
                 y: (bottom_left_pos.y - width / 2.0 - assets.brain_corner.height as f32),
                 width: height - assets.brain_corner.height as f32 * 2.0,
-                height: boarder_height,
+                height: boarder_height * scale,
             },
             Vector2::new(width / 2.0, boarder_height / 2.0),
             -90.0,
@@ -303,8 +304,13 @@ fn draw_ui_boarders(
         );
     }
     {
-        let width = assets.brain_corner.width as f32;
-        let height = assets.brain_corner.height as f32;
+        let width = assets.brain_corner.width as f32 * scale;
+        let height = assets.brain_corner.height as f32 * scale;
+        //let origin = Vector2::new(
+        //    -assets.brain_corner.width as f32 / 2.0,
+        //    assets.brain_corner.width as f32 / 2.0,
+        //);
+        let origin = Vector2::new(-width as f32 / 2.0, 0.0);
         //Bottom Left
         d.draw_texture_pro(
             &assets.brain_corner,
@@ -320,7 +326,7 @@ fn draw_ui_boarders(
                 width,
                 height,
             },
-            Vector2::new(width / 2.0, height / 2.0),
+            origin,
             0.0,
             Color::WHITE,
         );
@@ -339,7 +345,7 @@ fn draw_ui_boarders(
                 width,
                 height,
             },
-            Vector2::new(width / 2.0, height / 2.0),
+            origin,
             -90.0,
             Color::WHITE,
         );
@@ -377,9 +383,13 @@ fn draw_ui_boarders(
                 width,
                 height,
             },
-            Vector2::new(width / 2.0, height / 2.0),
+            origin,
             180.0,
             Color::WHITE,
         );
     }
+    (
+        assets.brain_corner.width as f32 * scale,
+        assets.brain_corner.height as f32 * scale,
+    )
 }

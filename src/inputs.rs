@@ -61,30 +61,32 @@ fn brain(
     let instruction_count =
         brain.get_instruction_count(brain_edit.selected_instruction.instruction_type);
     if brain.in_bounds((mouse_brain_pos.x as i32, mouse_brain_pos.y as i32)) {
-        let old_instruction = brain.instructions
-            [mouse_brain_pos.x as usize + mouse_brain_pos.y as usize * brain.width as usize];
-        if instruction_count != 0 && rl.is_mouse_button_down(MouseButton::MOUSE_BUTTON_LEFT) {
-            let index =
-                mouse_brain_pos.x as usize + mouse_brain_pos.y as usize * brain.width as usize;
-            brain.instructions[index] = brain_edit.selected_instruction;
-            if old_instruction != brain.instructions[index] {
-                if brain_edit.selected_instruction.instruction_type != InstructionType::None {
-                    let _ = sound_handle.play_raw(
-                        Decoder::new(BufReader::new(
-                            File::open("Assets/button_down.wav").unwrap(),
-                        ))
-                        .unwrap()
-                        .convert_samples(),
-                    );
-                }else if old_instruction.instruction_type != InstructionType::None {
-                    let _ = sound_handle.play_raw(
-                        Decoder::new(BufReader::new(
-                            File::open("Assets/button_up.wav").unwrap(),
-                        ))
-                        .unwrap()
-                        .convert_samples(),
-                    );
-
+        let index = mouse_brain_pos.x as usize + mouse_brain_pos.y as usize * brain.width as usize;
+        let old_instruction = brain.instructions[index];
+        if rl.is_mouse_button_down(MouseButton::MOUSE_BUTTON_LEFT) {
+            if instruction_count != 0
+                || brain_edit.selected_instruction.instruction_type
+                    == old_instruction.instruction_type
+            {
+                brain.instructions[index] = brain_edit.selected_instruction;
+                if old_instruction != brain.instructions[index] {
+                    if brain_edit.selected_instruction.instruction_type != InstructionType::None {
+                        let _ = sound_handle.play_raw(
+                            Decoder::new(BufReader::new(
+                                File::open("Assets/button_down.wav").unwrap(),
+                            ))
+                            .unwrap()
+                            .convert_samples(),
+                        );
+                    } else if old_instruction.instruction_type != InstructionType::None {
+                        let _ = sound_handle.play_raw(
+                            Decoder::new(BufReader::new(
+                                File::open("Assets/button_up.wav").unwrap(),
+                            ))
+                            .unwrap()
+                            .convert_samples(),
+                        );
+                    }
                 }
             }
         }
@@ -113,6 +115,11 @@ fn brain(
             && index < avalible_instructions.len()
         {
             brain_edit.selected_instruction.instruction_type = avalible_instructions[index].1;
+            let _ = sound_handle.play_raw(
+                Decoder::new(BufReader::new(File::open("Assets/button_up.wav").unwrap()))
+                    .unwrap()
+                    .convert_samples(),
+            );
         }
     }
 }

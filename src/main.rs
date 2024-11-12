@@ -152,6 +152,7 @@ impl Brain {
     fn get_avalible_instructions(&self) -> Vec<(usize, InstructionType)> {
         let mut total_instructions = self.total_instructions.clone();
         total_instructions.insert(0, (1, InstructionType::None));
+
         for avalible_instruction in &mut total_instructions {
             if avalible_instruction.1 != InstructionType::None {
                 for instruction in &self.instructions {
@@ -194,6 +195,7 @@ struct BrainEdit {
     pos: Vector2,
     id: Option<usize>,
     size: f32,
+    scale:f32,
     selected_instruction: Instruction,
 }
 
@@ -202,31 +204,32 @@ fn main() {
         .size(640, 480)
         .resizable()
         .msaa_4x()
-        .title("Hello, World")
+        .title("Robotery")
         .build();
 
-    let (stream, sound_handle) = OutputStream::try_default().unwrap();
+    let (_stream, sound_handle) = OutputStream::try_default().unwrap();
     let mut map = Map::new(
         10,
         10,
         vec![Robot::new(
             (0, 0),
             Rotation::Up,
-            10,
-            10,
+            5,
+            5,
             vec![
-                (5, InstructionType::Direction),
-                (5, InstructionType::Move),
-                (5, InstructionType::RotateLeft),
-                (5, InstructionType::RotateRight),
+                (25, InstructionType::Direction),
+                (25, InstructionType::Move),
+                (25, InstructionType::RotateLeft),
+                (25, InstructionType::RotateRight),
             ],
         )],
     );
 
     let mut brain_edit = BrainEdit {
-        pos: Vector2 { x: 100.0, y: 650.0 },
+        pos: Vector2 { x: 100.0, y: 300.0 },
         id: Some(0),
-        size: 600.0,
+        size: 100.0,
+        scale: 2.0,
         selected_instruction: Instruction {
             instruction_type: InstructionType::None,
             rotation: Rotation::Right,
@@ -455,7 +458,7 @@ fn main() {
                 &assets,
                 mouse_pos,
                 &brain_edit.selected_instruction,
-                1.0,
+                brain_edit.scale,
             );
         }
     }
