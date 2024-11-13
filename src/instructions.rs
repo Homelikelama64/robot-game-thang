@@ -1,10 +1,15 @@
-use crate::{get_cell_type, Cell, InstructionType, Map, Rotation};
+use crate::{Cell, InstructionType, Map, Rotation, World};
 
-pub fn update_robots(map:&mut Map, read_next:bool, time_since_last_step:f32, update_dt:f32) -> (bool,f32) {
+pub fn update_robots(
+    world: &mut World,
+    read_next: bool,
+    time_since_last_step: f32,
+    update_dt: f32,
+) -> (bool, f32) {
     let mut read_next = read_next;
     let mut time_since_last_step = time_since_last_step;
     while time_since_last_step > update_dt {
-        for robot in &mut map.robots {
+        for robot in &mut world.robots {
             let brain = &mut robot.brain;
             let instruction = brain.get_instruction(brain.reader.pos);
             if read_next {
@@ -16,10 +21,11 @@ pub fn update_robots(map:&mut Map, read_next:bool, time_since_last_step:f32, upd
                             Rotation::Down => (robot.pos.0, robot.pos.1 - 1),
                             Rotation::Left => (robot.pos.0 - 1, robot.pos.1),
                         };
-                        let cell = get_cell_type(pos.0, pos.1, map.width, map.height, &map.cells);
+                        let cell = world.map.get_cell_type(pos.0, pos.1);
                         match cell {
                             Cell::Empty => robot.pos = pos,
                             Cell::Wall => {}
+                            Cell::Gap => {},
                         }
                     }
                     InstructionType::Back => {
@@ -29,10 +35,11 @@ pub fn update_robots(map:&mut Map, read_next:bool, time_since_last_step:f32, upd
                             Rotation::Down => (robot.pos.0, robot.pos.1 + 1),
                             Rotation::Left => (robot.pos.0 + 1, robot.pos.1),
                         };
-                        let cell = get_cell_type(pos.0, pos.1, map.width, map.height, &map.cells);
+                        let cell = world.map.get_cell_type(pos.0, pos.1);
                         match cell {
                             Cell::Empty => robot.pos = pos,
                             Cell::Wall => {}
+                            Cell::Gap => {},
                         }
                     }
                     InstructionType::Direction => {

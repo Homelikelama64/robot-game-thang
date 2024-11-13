@@ -16,18 +16,23 @@ mod draw_map;
 mod inputs;
 mod instructions;
 
+struct World {
+    robots: Vec<Robot>,
+    map: Map,
+}
+
 #[derive(Clone, Debug)]
 struct Map {
     width: usize,
     height: usize,
     cells: Vec<Cell>,
-    robots: Vec<Robot>,
 }
 
 #[derive(Clone, Copy, Debug)]
 enum Cell {
     Empty,
     Wall,
+    Gap,
 }
 
 #[derive(Clone, Debug)]
@@ -76,8 +81,17 @@ enum Rotation {
     Left,
 }
 
+impl World {
+    fn new(map_width: usize, map_height: usize, robots: Vec<Robot>) -> World {
+        World {
+            robots,
+            map: Map::new(map_width, map_height),
+        }
+    }
+}
+
 impl Map {
-    fn new(width: usize, height: usize, robots: Vec<Robot>) -> Map {
+    fn new(width: usize, height: usize) -> Map {
         let mut map: Vec<Cell> = vec![];
         for _ in 0..(width * height) {
             map.push(Cell::Empty);
@@ -86,17 +100,15 @@ impl Map {
             width,
             height,
             cells: map,
-            robots,
         }
     }
-}
-
-fn get_cell_type(x: i32, y: i32, width: usize, height: usize, cells: &[Cell]) -> Cell {
-    if x < 0 || x >= width as i32 || y < 0 || y >= height as i32 {
-        return Cell::Wall;
+    fn get_cell_type(&self, x: i32, y: i32) -> Cell {
+        if x < 0 || x >= self.width as i32 || y < 0 || y >= self.height as i32 {
+            return Cell::Wall;
+        }
+        let index = x + y * self.width as i32;
+        self.cells.clone()[index as usize]
     }
-    let index = x + y * width as i32;
-    cells[index as usize]
 }
 
 impl Robot {
@@ -197,7 +209,32 @@ struct Assets {
     left_instruction: Texture2D,
     reader: Texture2D,
     font: WeakFont,
+    map: MapAssets,
 }
+
+struct MapAssets {
+    empty: EmptyAssets,
+}
+
+struct EmptyAssets {
+    oooo: Texture2D,
+    oooi: Texture2D,
+    ooio: Texture2D,
+    ooii: Texture2D,
+    oioo: Texture2D,
+    oioi: Texture2D,
+    oiio: Texture2D,
+    oiii: Texture2D,
+    iooo: Texture2D,
+    iooi: Texture2D,
+    ioio: Texture2D,
+    ioii: Texture2D,
+    iioo: Texture2D,
+    iioi: Texture2D,
+    iiio: Texture2D,
+    iiii: Texture2D,
+}
+
 struct BrainEdit {
     pos: Vector2,
     id: Option<usize>,
@@ -210,14 +247,15 @@ fn main() {
     let (mut rl, thread) = raylib::init()
         .size(640, 480)
         .resizable()
-        .msaa_4x().vsync()
+        .msaa_4x()
+        .vsync()
         .title("Robotery")
         .build();
 
     let (_stream, sound_handle) = OutputStream::try_default().unwrap();
-    let mut map = Map::new(
-        10,
-        10,
+    let mut world = World::new(
+        4,
+        4,
         vec![Robot::new(
             (0, 0),
             Rotation::Up,
@@ -233,9 +271,13 @@ fn main() {
         )],
     );
 
+    world.map.cells[world.map.width + 1] = Cell::Wall;
+    world.map.cells[world.map.width] = Cell::Wall;
+    world.map.cells[2] = Cell::Wall;
+
     let mut brain_edit = BrainEdit {
         pos: Vector2 { x: 100.0, y: 450.0 },
-        id: Some(0),
+        id: None,
         size: 200.0,
         scale: 2.0,
         selected_instruction: Instruction {
@@ -275,12 +317,62 @@ fn main() {
             .load_texture(&thread, "Assets/left_instruction.png")
             .unwrap(),
         reader: rl.load_texture(&thread, "Assets/reader.png").unwrap(),
-        font: rl.get_font_default()
+        font: rl.get_font_default(),
+        map: MapAssets {
+            empty: EmptyAssets {
+                oooo: rl
+                    .load_texture(&thread, "Assets/map/empty/0000.png")
+                    .unwrap(),
+                oooi: rl
+                    .load_texture(&thread, "Assets/map/empty/0001.png")
+                    .unwrap(),
+                ooio: rl
+                    .load_texture(&thread, "Assets/map/empty/0010.png")
+                    .unwrap(),
+                ooii: rl
+                    .load_texture(&thread, "Assets/map/empty/0011.png")
+                    .unwrap(),
+                oioo: rl
+                    .load_texture(&thread, "Assets/map/empty/0100.png")
+                    .unwrap(),
+                oioi: rl
+                    .load_texture(&thread, "Assets/map/empty/0101.png")
+                    .unwrap(),
+                oiio: rl
+                    .load_texture(&thread, "Assets/map/empty/0110.png")
+                    .unwrap(),
+                oiii: rl
+                    .load_texture(&thread, "Assets/map/empty/0111.png")
+                    .unwrap(),
+                iooo: rl
+                    .load_texture(&thread, "Assets/map/empty/1000.png")
+                    .unwrap(),
+                iooi: rl
+                    .load_texture(&thread, "Assets/map/empty/1001.png")
+                    .unwrap(),
+                ioio: rl
+                    .load_texture(&thread, "Assets/map/empty/1010.png")
+                    .unwrap(),
+                ioii: rl
+                    .load_texture(&thread, "Assets/map/empty/1011.png")
+                    .unwrap(),
+                iioo: rl
+                    .load_texture(&thread, "Assets/map/empty/1100.png")
+                    .unwrap(),
+                iioi: rl
+                    .load_texture(&thread, "Assets/map/empty/1101.png")
+                    .unwrap(),
+                iiio: rl
+                    .load_texture(&thread, "Assets/map/empty/1110.png")
+                    .unwrap(),
+                iiii: rl
+                    .load_texture(&thread, "Assets/map/empty/1111.png")
+                    .unwrap(),
+            },
+        },
     };
     let update_dt = 0.5;
     let mut time_since_last_step = 0.0;
-
-    let mut scrolls = 0.0;
 
     let mut stepping = false;
     let mut read_next = true;
@@ -296,11 +388,11 @@ fn main() {
         }
 
         (read_next, time_since_last_step) =
-            update_robots(&mut map, read_next, time_since_last_step, update_dt);
+            update_robots(&mut world, read_next, time_since_last_step, update_dt);
 
         stepping = inputs(
             &mut rl,
-            &mut map,
+            &mut world,
             &assets,
             mouse_pos,
             &mut brain_edit,
@@ -310,14 +402,20 @@ fn main() {
 
         let mut d = rl.begin_drawing(&thread);
 
-        d.clear_background(Color::new(51, 51, 51, 255));
+        d.clear_background(Color::new(20, 20, 20, 255));
 
-
-        //draw_board(&mut d, &map, Vector2::new(50.0, 50.0), 200.0, 1.0);
+        draw_board(
+            &mut d,
+            &world,
+            &assets,
+            Vector2::new(50.0, 50.0),
+            500.0,
+            1.0,
+        );
         if brain_edit.id.is_some() {
             draw_brain(
                 &mut d,
-                &map.robots[brain_edit.id.unwrap()].brain,
+                &world.robots[brain_edit.id.unwrap()].brain,
                 brain_edit.pos,
                 brain_edit.size,
                 &assets,

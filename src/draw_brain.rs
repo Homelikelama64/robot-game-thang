@@ -20,8 +20,10 @@ pub fn draw_brain(
         scale,
         assets,
         bottom_left_pos,
-        size / brain.width as f32 * brain.height as f32,
-        "Brain".to_string()
+        (size - assets.brain_corner.width as f32 * scale * 2.0) / brain.width as f32
+            * brain.height as f32
+            + assets.brain_corner.width as f32 * scale * 2.0,
+        "Brain".to_string(),
     );
     let width = size - buffer_x * 2.0;
     let instruction_size = width / brain.width as f32;
@@ -118,7 +120,7 @@ pub fn draw_brain(
                 y: height + buffer_y,
             },
         height + buffer_y * 2.0,
-        "Selection".to_string()
+        "Selection".to_string(),
     );
     let top_left_pos = Vector2::new(top_left_pos.x + buffer_x, top_left_pos.y);
     for i in 0..(selection_grid_width * selection_grid_height) as usize {

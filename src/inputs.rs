@@ -3,11 +3,11 @@ use std::{fs::File, io::BufReader};
 use raylib::prelude::*;
 use rodio::{Decoder, OutputStreamHandle, Source};
 
-use crate::{Assets, BrainEdit, InstructionType, Map, Rotation};
+use crate::{Assets, BrainEdit, InstructionType, Map, Rotation, World};
 
 pub fn inputs(
     rl: &mut RaylibHandle,
-    map: &mut Map,
+    world: &mut World,
     assets: &Assets,
     mouse_pos: Vector2,
     brain_edit: &mut BrainEdit,
@@ -19,7 +19,7 @@ pub fn inputs(
         stepping = !stepping;
     }
     if brain_edit.id.is_some() {
-        brain(rl, map, assets, mouse_pos, sound_handle, brain_edit);
+        brain(rl, world, assets, mouse_pos, sound_handle, brain_edit);
     }
     if rl.get_mouse_wheel_move() > 0.0 {
         brain_edit.selected_instruction.rotation = match brain_edit.selected_instruction.rotation {
@@ -42,13 +42,13 @@ pub fn inputs(
 
 fn brain(
     rl: &mut RaylibHandle,
-    map: &mut Map,
+    world: &mut World,
     assets: &Assets,
     mouse_pos: Vector2,
     sound_handle: &OutputStreamHandle,
     brain_edit: &mut BrainEdit,
 ) {
-    let brain = &mut map.robots[brain_edit.id.unwrap()].brain;
+    let brain = &mut world.robots[brain_edit.id.unwrap()].brain;
     let buffer_x = assets.brain_corner.width as f32 * brain_edit.scale;
     let buffer_y = assets.brain_corner.height as f32 * brain_edit.scale;
     let width = brain_edit.size * brain_edit.scale - buffer_x * 2.0;
@@ -116,9 +116,11 @@ fn brain(
             if rl.is_mouse_button_released(MouseButton::MOUSE_BUTTON_LEFT) {
                 brain_edit.selected_instruction.instruction_type = avalible_instructions[index].1;
                 let _ = sound_handle.play_raw(
-                    Decoder::new(BufReader::new(File::open("Assets/button_down.wav").unwrap()))
-                        .unwrap()
-                        .convert_samples(),
+                    Decoder::new(BufReader::new(
+                        File::open("Assets/button_down.wav").unwrap(),
+                    ))
+                    .unwrap()
+                    .convert_samples(),
                 );
             }
         }
