@@ -21,6 +21,7 @@ pub fn draw_brain(
         assets,
         bottom_left_pos,
         size / brain.width as f32 * brain.height as f32,
+        "Brain".to_string()
     );
     let width = size - buffer_x * 2.0;
     let instruction_size = width / brain.width as f32;
@@ -64,7 +65,12 @@ pub fn draw_brain(
                     height: instruction_size,
                 },
                 offset,
-                0.0,
+                match brain.reader.rotation {
+                    Rotation::Up => 0.0,
+                    Rotation::Right => 90.0,
+                    Rotation::Down => 180.0,
+                    Rotation::Left => 270.0,
+                },
                 Color::WHITE,
             );
         }
@@ -112,6 +118,7 @@ pub fn draw_brain(
                 y: height + buffer_y,
             },
         height + buffer_y * 2.0,
+        "Selection".to_string()
     );
     let top_left_pos = Vector2::new(top_left_pos.x + buffer_x, top_left_pos.y);
     for i in 0..(selection_grid_width * selection_grid_height) as usize {
@@ -243,6 +250,7 @@ fn draw_ui_boarders(
     assets: &Assets,
     bottom_left_pos: Vector2,
     height: f32,
+    title: String,
 ) -> (f32, f32) {
     let top_left_pos = Vector2::new(bottom_left_pos.x, bottom_left_pos.y - height);
     {
@@ -269,6 +277,10 @@ fn draw_ui_boarders(
             0.0,
             Color::WHITE,
         );
+        let top_pos = Vector2::new(
+            bottom_left_pos.x + offset.y * 2.0 + width / 2.0,
+            bottom_left_pos.y - boarder_height / 2.0 * scale - height,
+        );
         //Top
         d.draw_texture_pro(
             &assets.brain_edge,
@@ -279,13 +291,25 @@ fn draw_ui_boarders(
                 height: assets.brain_edge.height as f32,
             },
             Rectangle {
-                x: bottom_left_pos.x + offset.y * 2.0 + width / 2.0,
-                y: bottom_left_pos.y - boarder_height / 2.0 * scale - height,
+                x: top_pos.x,
+                y: top_pos.y,
                 width,
                 height: boarder_height * scale,
             },
             offset,
             180.0,
+            Color::WHITE,
+        );
+        let font_height = 6.0 * scale;
+        let spacing = 2.0 * scale;
+        d.draw_text_pro(
+            &assets.font,
+            title.as_str(),
+            top_pos,
+            Vector2::new(title.len() as f32 * spacing, font_height / 2.0),
+            0.0,
+            font_height,
+            spacing,
             Color::WHITE,
         );
         let offset = Vector2::new(

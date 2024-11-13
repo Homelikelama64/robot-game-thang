@@ -2,6 +2,7 @@
 #![allow(clippy::too_many_arguments)]
 
 use draw_brain::*;
+use draw_map::*;
 use inputs::*;
 use instructions::*;
 use raylib::prelude::*;
@@ -9,10 +10,9 @@ use rodio::{
     source::{SamplesConverter, Source},
     Decoder, OutputStream,
 };
-use std::fs::File;
-use std::io::BufReader;
 
 mod draw_brain;
+mod draw_map;
 mod inputs;
 mod instructions;
 
@@ -196,6 +196,7 @@ struct Assets {
     right_instruction: Texture2D,
     left_instruction: Texture2D,
     reader: Texture2D,
+    font: WeakFont,
 }
 struct BrainEdit {
     pos: Vector2,
@@ -209,7 +210,7 @@ fn main() {
     let (mut rl, thread) = raylib::init()
         .size(640, 480)
         .resizable()
-        .msaa_4x()
+        .msaa_4x().vsync()
         .title("Robotery")
         .build();
 
@@ -274,6 +275,7 @@ fn main() {
             .load_texture(&thread, "Assets/left_instruction.png")
             .unwrap(),
         reader: rl.load_texture(&thread, "Assets/reader.png").unwrap(),
+        font: rl.get_font_default()
     };
     let update_dt = 0.5;
     let mut time_since_last_step = 0.0;
@@ -310,6 +312,8 @@ fn main() {
 
         d.clear_background(Color::new(51, 51, 51, 255));
 
+
+        //draw_board(&mut d, &map, Vector2::new(50.0, 50.0), 200.0, 1.0);
         if brain_edit.id.is_some() {
             draw_brain(
                 &mut d,
