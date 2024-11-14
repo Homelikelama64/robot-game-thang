@@ -28,7 +28,7 @@ struct Map {
     cells: Vec<Cell>,
 }
 
-#[derive(Clone, Copy, Debug)]
+#[derive(Clone, Copy, Debug, PartialEq)]
 enum Cell {
     Empty,
     Wall,
@@ -214,25 +214,28 @@ struct Assets {
 
 struct MapAssets {
     empty: EmptyAssets,
+    wall: WallAssets,
 }
 
 struct EmptyAssets {
-    oooo: Texture2D,
-    oooi: Texture2D,
-    ooio: Texture2D,
-    ooii: Texture2D,
-    oioo: Texture2D,
-    oioi: Texture2D,
-    oiio: Texture2D,
-    oiii: Texture2D,
-    iooo: Texture2D,
-    iooi: Texture2D,
-    ioio: Texture2D,
-    ioii: Texture2D,
-    iioo: Texture2D,
-    iioi: Texture2D,
-    iiio: Texture2D,
-    iiii: Texture2D,
+    shade_corner_filled: Texture2D,
+    shade_edge_right: Texture2D,
+    shade_edge_bottom: Texture2D,
+    shade_corner_right: Texture2D,
+    shade_corner_bottom: Texture2D,
+    left: Texture2D,
+    top: Texture2D,
+    top_left: Texture2D,
+}
+
+struct WallAssets {
+    top: Texture2D,
+    right: Texture2D,
+    bottom: Texture2D,
+    left: Texture2D,
+    corner_inside: Texture2D,
+    corner_outside: Texture2D,
+    corner_straight: Texture2D,
 }
 
 struct BrainEdit {
@@ -254,8 +257,8 @@ fn main() {
 
     let (_stream, sound_handle) = OutputStream::try_default().unwrap();
     let mut world = World::new(
-        4,
-        4,
+        6,
+        6,
         vec![Robot::new(
             (0, 0),
             Rotation::Up,
@@ -271,9 +274,13 @@ fn main() {
         )],
     );
 
-    world.map.cells[world.map.width + 1] = Cell::Wall;
-    world.map.cells[world.map.width] = Cell::Wall;
-    world.map.cells[2] = Cell::Wall;
+    world.map.cells[world.map.width * 0 + 1] = Cell::Wall;
+    world.map.cells[world.map.width * 3 + 1] = Cell::Wall;
+    
+    world.map.cells[world.map.width * 1 + 1] = Cell::Wall;
+    world.map.cells[world.map.width * 2 + 1] = Cell::Wall;
+    world.map.cells[world.map.width * 2 + 2] = Cell::Wall;
+    world.map.cells[world.map.width * 2 + 0] = Cell::Wall;
 
     let mut brain_edit = BrainEdit {
         pos: Vector2 { x: 100.0, y: 450.0 },
@@ -320,54 +327,51 @@ fn main() {
         font: rl.get_font_default(),
         map: MapAssets {
             empty: EmptyAssets {
-                oooo: rl
-                    .load_texture(&thread, "Assets/map/empty/0000.png")
+                shade_corner_filled: rl
+                    .load_texture(&thread, "Assets/map/empty/shadow/corner_filled.png")
                     .unwrap(),
-                oooi: rl
-                    .load_texture(&thread, "Assets/map/empty/0001.png")
+                shade_edge_right: rl
+                    .load_texture(&thread, "Assets/map/empty/shadow/edge_right.png")
                     .unwrap(),
-                ooio: rl
-                    .load_texture(&thread, "Assets/map/empty/0010.png")
+                shade_edge_bottom: rl
+                    .load_texture(&thread, "Assets/map/empty/shadow/edge_bottom.png")
                     .unwrap(),
-                ooii: rl
-                    .load_texture(&thread, "Assets/map/empty/0011.png")
+                shade_corner_right: rl
+                    .load_texture(&thread, "Assets/map/empty/shadow/corner_right_filled.png")
                     .unwrap(),
-                oioo: rl
-                    .load_texture(&thread, "Assets/map/empty/0100.png")
+                shade_corner_bottom: rl
+                    .load_texture(&thread, "Assets/map/empty/shadow/corner_bottom_filled.png")
                     .unwrap(),
-                oioi: rl
-                    .load_texture(&thread, "Assets/map/empty/0101.png")
+                top: rl
+                    .load_texture(&thread, "Assets/map/empty/edge/top.png")
                     .unwrap(),
-                oiio: rl
-                    .load_texture(&thread, "Assets/map/empty/0110.png")
+                left: rl
+                    .load_texture(&thread, "Assets/map/empty/edge/left.png")
                     .unwrap(),
-                oiii: rl
-                    .load_texture(&thread, "Assets/map/empty/0111.png")
+                top_left: rl
+                    .load_texture(&thread, "Assets/map/empty/edge/corner.png")
                     .unwrap(),
-                iooo: rl
-                    .load_texture(&thread, "Assets/map/empty/1000.png")
+            },
+            wall: WallAssets {
+                top: rl.load_texture(&thread, "Assets/map/wall/top.png").unwrap(),
+                right: rl
+                    .load_texture(&thread, "Assets/map/wall/right.png")
                     .unwrap(),
-                iooi: rl
-                    .load_texture(&thread, "Assets/map/empty/1001.png")
+                bottom: rl
+                    .load_texture(&thread, "Assets/map/wall/bottom.png")
                     .unwrap(),
-                ioio: rl
-                    .load_texture(&thread, "Assets/map/empty/1010.png")
+                left: rl
+                    .load_texture(&thread, "Assets/map/wall/left.png")
                     .unwrap(),
-                ioii: rl
-                    .load_texture(&thread, "Assets/map/empty/1011.png")
+                corner_inside: rl
+                    .load_texture(&thread, "Assets/map/wall/corner_inside.png")
                     .unwrap(),
-                iioo: rl
-                    .load_texture(&thread, "Assets/map/empty/1100.png")
-                    .unwrap(),
-                iioi: rl
-                    .load_texture(&thread, "Assets/map/empty/1101.png")
-                    .unwrap(),
-                iiio: rl
-                    .load_texture(&thread, "Assets/map/empty/1110.png")
-                    .unwrap(),
-                iiii: rl
-                    .load_texture(&thread, "Assets/map/empty/1111.png")
-                    .unwrap(),
+                corner_outside:rl
+                .load_texture(&thread, "Assets/map/wall/corner_outside.png")
+                .unwrap(),
+                corner_straight:rl
+                .load_texture(&thread, "Assets/map/wall/corner_straight.png")
+                .unwrap(),
             },
         },
     };

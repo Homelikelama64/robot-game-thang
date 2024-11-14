@@ -12,7 +12,6 @@ pub fn draw_board(
 ) {
     let width = width * scale;
     let cell_size = width / world.map.width as f32;
-    dbg!(world.map.cells.len());
     for (i, cell) in world.map.cells.iter().enumerate() {
         let grid_pos = Vector2::new((i % world.map.width) as f32, (i / world.map.width) as f32);
 
@@ -42,53 +41,104 @@ fn draw_cell(
     scale: f32,
 ) {
     let center_cell = world.map.get_cell_type(grid_pos.0, grid_pos.1);
-    let surrounding_cells = (
-        world.map.get_cell_type(grid_pos.0, grid_pos.1 + 1),
-        world.map.get_cell_type(grid_pos.0 + 1, grid_pos.1),
-        world.map.get_cell_type(grid_pos.0, grid_pos.1 - 1),
-        world.map.get_cell_type(grid_pos.0 - 1, grid_pos.1),
-    );
+    let mut textures: Vec<&Texture2D> = vec![];
     match center_cell {
         crate::Cell::Empty => {
-            #[rustfmt::skip]
-            let texture = match surrounding_cells {
-                (Cell::Empty, Cell::Empty, Cell::Empty, Cell::Empty) =>                                             &assets.map.empty.iiii,
-                (Cell::Empty, Cell::Empty, Cell::Empty, Cell::Wall | Cell::Gap) =>                                  &assets.map.empty.iiio,
-                (Cell::Empty, Cell::Empty, Cell::Wall | Cell::Gap, Cell::Empty) =>                                  &assets.map.empty.iioi,
-                (Cell::Empty, Cell::Empty, Cell::Wall | Cell::Gap, Cell::Wall | Cell::Gap) =>                       &assets.map.empty.iioo,
-                (Cell::Empty, Cell::Wall | Cell::Gap, Cell::Empty, Cell::Empty) =>                                  &assets.map.empty.ioii,
-                (Cell::Empty, Cell::Wall | Cell::Gap, Cell::Empty, Cell::Wall | Cell::Gap) =>                       &assets.map.empty.ioio,
-                (Cell::Empty, Cell::Wall | Cell::Gap, Cell::Wall | Cell::Gap, Cell::Empty) =>                       &assets.map.empty.iooi,
-                (Cell::Empty, Cell::Wall | Cell::Gap, Cell::Wall | Cell::Gap, Cell::Wall | Cell::Gap) =>            &assets.map.empty.iooo,
-                (Cell::Wall | Cell::Gap, Cell::Empty, Cell::Empty, Cell::Empty) =>                                  &assets.map.empty.oiii,
-                (Cell::Wall | Cell::Gap, Cell::Empty, Cell::Empty, Cell::Wall | Cell::Gap) =>                       &assets.map.empty.oiio,
-                (Cell::Wall | Cell::Gap, Cell::Empty, Cell::Wall | Cell::Gap, Cell::Empty) =>                       &assets.map.empty.oioi,
-                (Cell::Wall | Cell::Gap, Cell::Empty, Cell::Wall | Cell::Gap, Cell::Wall | Cell::Gap) =>            &assets.map.empty.oioo,
-                (Cell::Wall | Cell::Gap, Cell::Wall | Cell::Gap, Cell::Empty, Cell::Empty) =>                       &assets.map.empty.ooii,
-                (Cell::Wall | Cell::Gap, Cell::Wall | Cell::Gap, Cell::Empty, Cell::Wall | Cell::Gap) =>            &assets.map.empty.ooio,
-                (Cell::Wall | Cell::Gap, Cell::Wall | Cell::Gap, Cell::Wall | Cell::Gap, Cell::Empty) =>            &assets.map.empty.oooi,
-                (Cell::Wall | Cell::Gap, Cell::Wall | Cell::Gap, Cell::Wall | Cell::Gap, Cell::Wall | Cell::Gap) => &assets.map.empty.oooo,
-            };
-            d.draw_texture_pro(
-                texture,
-                Rectangle {
-                    x: 0.0,
-                    y: 0.0,
-                    width: texture.width as f32,
-                    height: texture.height as f32,
-                },
+            d.draw_rectangle_rec(
                 Rectangle {
                     x: pos.x,
                     y: pos.y,
                     width: size,
                     height: size,
                 },
-                Vector2::zero(),
-                0.0,
-                Color::WHITE,
+                Color::new(100, 100, 100, 255),
             );
+
+            match world.map.get_cell_type(grid_pos.0, grid_pos.1 - 1) {
+                Cell::Empty => {}
+                Cell::Wall => textures.push(&assets.map.empty.shade_edge_bottom),
+                Cell::Gap => todo!(),
+            }
+            match world.map.get_cell_type(grid_pos.0 + 1, grid_pos.1) {
+                Cell::Empty => {}
+                Cell::Wall => textures.push(&assets.map.empty.shade_edge_right),
+                Cell::Gap => todo!(),
+            }
+            match world.map.get_cell_type(grid_pos.0 + 1, grid_pos.1 - 1) {
+                Cell::Empty => {}
+                Cell::Wall => textures.push(&assets.map.empty.shade_corner_filled),
+                Cell::Gap => todo!(),
+            }
+            if world.map.get_cell_type(grid_pos.0, grid_pos.1 - 1) == Cell::Wall
+                && world.map.get_cell_type(grid_pos.0 + 1, grid_pos.1 - 1) == Cell::Empty
+            {
+                textures.push(&assets.map.empty.shade_corner_bottom)
+            }
+            if world.map.get_cell_type(grid_pos.0 + 1, grid_pos.1) == Cell::Wall
+                && world.map.get_cell_type(grid_pos.0 + 1, grid_pos.1 - 1) == Cell::Empty
+            {
+                textures.push(&assets.map.empty.shade_corner_right)
+            }
+
         }
-        Cell::Wall => {},
-        Cell::Gap => {},
+        Cell::Wall => {
+            d.draw_rectangle_rec(
+                Rectangle {
+                    x: pos.x,
+                    y: pos.y,
+                    width: size,
+                    height: size,
+                },
+                Color::new(128, 128, 128, 255),
+            );
+            if world.map.get_cell_type(grid_pos.0, grid_pos.1 + 1) != Cell::Wall {
+                textures.push(&assets.map.wall.top);
+            }
+            if world.map.get_cell_type(grid_pos.0 - 1, grid_pos.1) != Cell::Wall {
+                textures.push(&assets.map.wall.left);
+            }
+            if world.map.get_cell_type(grid_pos.0 + 1, grid_pos.1) != Cell::Wall {
+                textures.push(&assets.map.wall.right);
+            }
+            if world.map.get_cell_type(grid_pos.0, grid_pos.1 - 1) != Cell::Wall {
+                textures.push(&assets.map.wall.bottom);
+            }
+            if world.map.get_cell_type(grid_pos.0 + 1, grid_pos.1) != Cell::Wall
+                && world.map.get_cell_type(grid_pos.0, grid_pos.1 - 1) != Cell::Wall
+            {
+                textures.push(&assets.map.wall.corner_outside);
+            }
+            if world.map.get_cell_type(grid_pos.0 + 1, grid_pos.1) == Cell::Wall
+                && world.map.get_cell_type(grid_pos.0 - 1, grid_pos.1) == Cell::Wall
+            {
+                textures.push(&assets.map.wall.corner_straight);
+            }
+            if world.map.get_cell_type(grid_pos.0, grid_pos.1 - 1) == Cell::Wall
+                && world.map.get_cell_type(grid_pos.0 + 1, grid_pos.1) == Cell::Wall
+            {
+                textures.push(&assets.map.wall.corner_inside);
+            }
+        }
+        Cell::Gap => {}
+    }
+    for texture in textures {
+        d.draw_texture_pro(
+            texture,
+            Rectangle {
+                x: 0.0,
+                y: 0.0,
+                width: texture.width as f32,
+                height: texture.height as f32,
+            },
+            Rectangle {
+                x: pos.x,
+                y: pos.y,
+                width: size,
+                height: size,
+            },
+            Vector2::zero(),
+            0.0,
+            Color::WHITE,
+        );
     }
 }
